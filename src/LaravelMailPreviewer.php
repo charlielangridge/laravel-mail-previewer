@@ -146,6 +146,7 @@ class LaravelMailPreviewer
 
             if ($token[0] === T_NAMESPACE) {
                 $namespace = $this->parseNamespace($tokens, $index);
+
                 continue;
             }
 

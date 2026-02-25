@@ -2,9 +2,9 @@
 
 namespace Charlielangridge\LaravelMailPreviewer;
 
+use Charlielangridge\LaravelMailPreviewer\Commands\LaravelMailPreviewerCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Charlielangridge\LaravelMailPreviewer\Commands\LaravelMailPreviewerCommand;
 
 class LaravelMailPreviewerServiceProvider extends PackageServiceProvider
 {

@@ -15,7 +15,7 @@ class FixtureDynamicSubjectNotification extends Notification
     {
         $subject = 'Hello '.$this->user->name;
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject($subject);
     }
 }

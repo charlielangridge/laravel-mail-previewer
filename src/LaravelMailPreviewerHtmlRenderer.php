@@ -2,9 +2,9 @@
 
 namespace Charlielangridge\LaravelMailPreviewer;
 
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;
-use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -53,7 +53,7 @@ class LaravelMailPreviewerHtmlRenderer
             return null;
         }
 
-        $notifiableInstance = $notifiable ?? (new AnonymousNotifiable())->route('mail', 'preview@example.test');
+        $notifiableInstance = $notifiable ?? (new AnonymousNotifiable)->route('mail', 'preview@example.test');
 
         try {
             $mailRepresentation = $notification->toMail($notifiableInstance);
@@ -95,11 +95,13 @@ class LaravelMailPreviewerHtmlRenderer
         foreach ($constructor->getParameters() as $parameter) {
             if (array_key_exists($parameter->getName(), $parameters)) {
                 $arguments[] = $this->coerceParameterValue($parameter, $parameters[$parameter->getName()]);
+
                 continue;
             }
 
             if ($parameter->isDefaultValueAvailable()) {
                 $arguments[] = $parameter->getDefaultValue();
+
                 continue;
             }
 
