@@ -24,6 +24,7 @@ This package is designed for internal preview tooling and admin UIs.
 ## Requirements
 
 - PHP `^8.4`
+- PHP `^8.3`
 - Laravel `^11.0 || ^12.0`
 
 ## Installation
