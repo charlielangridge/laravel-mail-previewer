@@ -19,7 +19,7 @@ class FixtureNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject('Fixture Notification Subject');
     }
 }

@@ -14,7 +14,7 @@ class FixtureRenderableNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject('Renderable Notification')
             ->line('Hello '.$this->recipient->name);
     }

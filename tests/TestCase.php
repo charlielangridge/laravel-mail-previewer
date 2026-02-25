@@ -2,9 +2,9 @@
 
 namespace Charlielangridge\LaravelMailPreviewer\Tests;
 
+use Charlielangridge\LaravelMailPreviewer\LaravelMailPreviewerServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Charlielangridge\LaravelMailPreviewer\LaravelMailPreviewerServiceProvider;
 
 class TestCase extends Orchestra
 {

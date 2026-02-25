@@ -1,8 +1,8 @@
 <?php
 
 use Charlielangridge\LaravelMailPreviewer\LaravelMailPreviewer;
-use Charlielangridge\LaravelMailPreviewer\Tests\Fixtures\App\Mail\FixtureRenderableMail;
 use Charlielangridge\LaravelMailPreviewer\Tests\Fixtures\App\Mail\FixtureMailWithModelInput;
+use Charlielangridge\LaravelMailPreviewer\Tests\Fixtures\App\Mail\FixtureRenderableMail;
 use Charlielangridge\LaravelMailPreviewer\Tests\Fixtures\App\Models\FixtureRecipient;
 use Illuminate\Support\Facades\Schema;
 
