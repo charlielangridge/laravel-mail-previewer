@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static array discover()
  * @method static array inputRequirements(string $className)
  * @method static ?string renderHtml(string $className, array $parameters = [], mixed $notifiable = null)
+ * @method static array inputTypeHintingIssues()
  */
 class LaravelMailPreviewer extends Facade
 {

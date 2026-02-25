@@ -2,6 +2,7 @@
 
 namespace Charlielangridge\LaravelMailPreviewer;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\File;
@@ -16,6 +17,11 @@ use Throwable;
 class LaravelMailPreviewer
 {
     /**
+     * @var array<int, class-string<Model>>|null
+     */
+    protected ?array $appModelClasses = null;
+
+    /**
      * @return array<int, array{name: string, type: string, options?: array<int, array{id: mixed, label: string}>}>
      */
     public function inputRequirements(string $className): array
@@ -26,6 +32,17 @@ class LaravelMailPreviewer
     public function renderHtml(string $className, array $parameters = [], mixed $notifiable = null): ?string
     {
         return app(LaravelMailPreviewerHtmlRenderer::class)->render($className, $parameters, $notifiable);
+    }
+
+    /**
+     * @return array{mailables: list<array<string, mixed>>, notifications: list<array<string, mixed>>}
+     */
+    public function inputTypeHintingIssues(): array
+    {
+        return [
+            'mailables' => $this->collectTypeHintingIssues($this->mailables(), 'mailable'),
+            'notifications' => $this->collectTypeHintingIssues($this->notifications(), 'notification'),
+        ];
     }
 
     /**
@@ -557,5 +574,170 @@ class LaravelMailPreviewer
         }
 
         return 'mixed';
+    }
+
+    /**
+     * @param  array<int, class-string>  $classes
+     * @return list<array<string, mixed>>
+     */
+    protected function collectTypeHintingIssues(array $classes, string $kind): array
+    {
+        $issues = [];
+
+        foreach ($classes as $className) {
+            $reflection = new ReflectionClass($className);
+
+            $constructor = $reflection->getConstructor();
+
+            if ($constructor === null) {
+                continue;
+            }
+
+            $untypedInputs = [];
+
+            foreach ($constructor->getParameters() as $parameter) {
+                if ($parameter->isOptional()) {
+                    continue;
+                }
+
+                $normalizedType = $this->normalizeParameterType($parameter);
+                $hasTypeHint = $parameter->getType() !== null;
+
+                if ($hasTypeHint && $normalizedType !== 'mixed') {
+                    continue;
+                }
+
+                $suggestion = $this->suggestTypeForParameter($parameter);
+
+                $untypedInputs[] = [
+                    'name' => $parameter->getName(),
+                    'current_type' => $normalizedType,
+                    'has_type_hint' => $hasTypeHint,
+                    'suggested_type' => $suggestion['type'],
+                    'suggestion_reason' => $suggestion['reason'],
+                ];
+            }
+
+            if ($untypedInputs === []) {
+                continue;
+            }
+
+            $issues[] = [
+                'kind' => $kind,
+                'name' => class_basename($className),
+                'class' => $className,
+                'untyped_input_requirements' => $untypedInputs,
+            ];
+        }
+
+        return $issues;
+    }
+
+    /**
+     * @return array{type: string, reason: string}
+     */
+    protected function suggestTypeForParameter(ReflectionParameter $parameter): array
+    {
+        if ($parameter->isDefaultValueAvailable()) {
+            $default = $parameter->getDefaultValue();
+
+            if (is_int($default)) {
+                return ['type' => 'int', 'reason' => 'Default value is an integer'];
+            }
+
+            if (is_string($default)) {
+                return ['type' => 'string', 'reason' => 'Default value is a string'];
+            }
+
+            if (is_bool($default)) {
+                return ['type' => 'bool', 'reason' => 'Default value is a boolean'];
+            }
+
+            if (is_float($default)) {
+                return ['type' => 'float', 'reason' => 'Default value is a float'];
+            }
+
+            if (is_array($default)) {
+                return ['type' => 'array', 'reason' => 'Default value is an array'];
+            }
+        }
+
+        $parameterName = $parameter->getName();
+
+        $modelSuggestion = $this->suggestModelTypeFromParameterName($parameterName);
+
+        if ($modelSuggestion !== null) {
+            return [
+                'type' => $modelSuggestion,
+                'reason' => 'Parameter name matches an app model class name',
+            ];
+        }
+
+        if (preg_match('/^(?:is|has|can|should)(?:[A-Z_]|_)/', $parameterName) === 1) {
+            return ['type' => 'bool', 'reason' => 'Parameter name suggests a boolean flag'];
+        }
+
+        if (preg_match('/(?:id|count|total|qty|quantity|index|offset|position|number)$/i', $parameterName) === 1) {
+            return ['type' => 'int', 'reason' => 'Parameter name suggests a numeric identifier or counter'];
+        }
+
+        if (preg_match('/(?:email|name|title|subject|token|slug|url|path|message|body|content)$/i', $parameterName) === 1) {
+            return ['type' => 'string', 'reason' => 'Parameter name suggests text data'];
+        }
+
+        if (preg_match('/(?:date|time|at|from|to)$/i', $parameterName) === 1) {
+            return ['type' => '\DateTimeInterface', 'reason' => 'Parameter name suggests a date/time value'];
+        }
+
+        return ['type' => 'string', 'reason' => 'Fallback suggestion for untyped input'];
+    }
+
+    protected function suggestModelTypeFromParameterName(string $parameterName): ?string
+    {
+        $needle = strtolower($parameterName);
+
+        foreach ($this->appModelClasses() as $modelClass) {
+            $baseName = class_basename($modelClass);
+            $normalizedBaseName = strtolower($baseName);
+
+            if ($normalizedBaseName === $needle) {
+                return $modelClass;
+            }
+
+            if (str_ends_with($normalizedBaseName, $needle)) {
+                return $modelClass;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, class-string<Model>>
+     */
+    protected function appModelClasses(): array
+    {
+        if ($this->appModelClasses !== null) {
+            return $this->appModelClasses;
+        }
+
+        if (! class_exists(Model::class)) {
+            $this->appModelClasses = [];
+
+            return $this->appModelClasses;
+        }
+
+        $models = [];
+
+        foreach ($this->discoverClassesExtending(Model::class) as $className) {
+            if (is_a($className, Model::class, true)) {
+                /** @var class-string<Model> $className */
+                $models[] = $className;
+            }
+        }
+
+        $this->appModelClasses = $models;
+
+        return $this->appModelClasses;
     }
 }

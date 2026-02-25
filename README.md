@@ -46,6 +46,8 @@ $requirements = LaravelMailPreviewer::inputRequirements(
     \App\Mail\FormCompletion::class
 );
 
+$issues = LaravelMailPreviewer::inputTypeHintingIssues();
+
 $html = LaravelMailPreviewer::renderHtml(
     \App\Mail\FormCompletion::class,
     ['form' => 12]
@@ -115,6 +117,42 @@ Notes:
 - Non-model parameters do not include `options`.
 - Unsupported classes return an empty array.
 
+### `LaravelMailPreviewer::inputTypeHintingIssues(): array`
+
+Returns mailables/notifications where required constructor inputs are not properly type-hinted
+(missing type hint or resolved as `mixed`), so you can work through and fix them.
+
+```php
+[
+    'mailables' => [
+        [
+            'kind' => 'mailable',
+            'name' => 'FormCompletion',
+            'class' => 'App\\Mail\\FormCompletion',
+            'untyped_input_requirements' => [
+                [
+                    'name' => 'form',
+                    'current_type' => 'mixed',
+                    'has_type_hint' => false,
+                    'suggested_type' => 'App\\Models\\Forms\\Form',
+                    'suggestion_reason' => 'parameter name matches an app model class name',
+                ],
+            ],
+        ],
+    ],
+    'notifications' => [
+        // same shape
+    ],
+]
+```
+
+Suggestion strategy:
+
+- Uses default parameter value type when present.
+- Attempts to map parameter names to app model classes.
+- Applies name heuristics (`...Id` => `int`, `is...` => `bool`, `token/email/name/...` => `string`).
+- Falls back to `string`.
+
 ### `LaravelMailPreviewer::renderHtml(string $className, array $parameters = [], mixed $notifiable = null): ?string`
 
 Renders HTML preview for a mailable or notification using Laravel's rendering pipeline.
@@ -146,7 +184,10 @@ LaravelMailPreviewer::discover();
 // 2) get inputs for chosen class
 LaravelMailPreviewer::inputRequirements(\App\Mail\FormCompletion::class);
 
-// 3) render html preview with selected values
+// 3) audit classes with weak constructor type hints
+LaravelMailPreviewer::inputTypeHintingIssues();
+
+// 4) render html preview with selected values
 $html = LaravelMailPreviewer::renderHtml(
     \App\Mail\FormCompletion::class,
     ['form' => 12]
