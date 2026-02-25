@@ -51,10 +51,7 @@ class LaravelMailPreviewer
     }
 
     /**
-     * @return array{
-     *     mailables: array<int, array{name: string, class: class-string, subject: ?string, input_requirements: array<int, array{name: string, type: string}>>>,
-     *     notifications: array<int, array{name: string, class: class-string, subject: ?string, input_requirements: array<int, array{name: string, type: string}>>>
-     * }
+     * @return array{mailables: list<array<string, mixed>>, notifications: list<array<string, mixed>>}
      */
     public function discover(): array
     {
@@ -71,7 +68,7 @@ class LaravelMailPreviewer
     }
 
     /**
-     * @return array{name: string, class: class-string, subject: ?string, input_requirements: array<int, array{name: string, type: string}>}
+     * @return array<string, mixed>
      */
     protected function mapDiscoveredClass(string $className, string $baseClass): array
     {
@@ -303,7 +300,7 @@ class LaravelMailPreviewer
     {
         $path = $reflection->getFileName();
 
-        if (! is_string($path) || $path === '') {
+        if ($path === false) {
             return null;
         }
 
@@ -365,13 +362,9 @@ class LaravelMailPreviewer
 
         foreach ($patterns as $pattern) {
             if (preg_match_all($pattern, $source, $matches, PREG_OFFSET_CAPTURE) !== false) {
-                foreach ($matches[1] ?? [] as $match) {
-                    $expression = $match[0] ?? null;
-                    $offset = $match[1] ?? null;
-
-                    if (! is_string($expression) || ! is_int($offset)) {
-                        continue;
-                    }
+                foreach ($matches[1] as $match) {
+                    $expression = $match[0];
+                    $offset = $match[1];
 
                     $candidates[] = [
                         'expression' => $expression,

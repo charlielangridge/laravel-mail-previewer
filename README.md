@@ -1,59 +1,157 @@
-# Laravel Mail Previewer - allows you to preview mailables and notifications with data
+# Laravel Mail Previewer
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/charlielangridge/laravel-mail-previewer.svg?style=flat-square)](https://packagist.org/packages/charlielangridge/laravel-mail-previewer)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/charlielangridge/laravel-mail-previewer/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/charlielangridge/laravel-mail-previewer/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/charlielangridge/laravel-mail-previewer/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/charlielangridge/laravel-mail-previewer/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/charlielangridge/laravel-mail-previewer.svg?style=flat-square)](https://packagist.org/packages/charlielangridge/laravel-mail-previewer)
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+Discover mailables and notifications in a Laravel app, inspect required inputs, and render preview HTML safely.
 
-## Support us
+This package is designed for internal preview tooling and admin UIs.
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/laravel-mail-previewer.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/laravel-mail-previewer)
+## Features
 
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
+- Discover all app mailables and notifications.
+- Return structured metadata:
+  - short `name`
+  - full `class`
+  - `subject` (including dynamic placeholder parsing)
+  - `input_requirements`
+- Resolve required constructor input for a selected class.
+- For model-typed inputs, return up to 100 selectable DB options.
+- Render HTML previews for mailables and notifications.
+- Never sends email when rendering previews.
 
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+## Requirements
+
+- PHP `^8.4`
+- Laravel `^11.0 || ^12.0`
 
 ## Installation
-
-You can install the package via composer:
 
 ```bash
 composer require charlielangridge/laravel-mail-previewer
 ```
 
-You can publish and run the migrations with:
+The package auto-registers via Laravel package discovery.
 
-```bash
-php artisan vendor:publish --tag="laravel-mail-previewer-migrations"
-php artisan migrate
-```
-
-You can publish the config file with:
-
-```bash
-php artisan vendor:publish --tag="laravel-mail-previewer-config"
-```
-
-This is the contents of the published config file:
+## Quick Start
 
 ```php
-return [
-];
+use Charlielangridge\LaravelMailPreviewer\Facades\LaravelMailPreviewer;
+
+$list = LaravelMailPreviewer::discover();
+
+$requirements = LaravelMailPreviewer::inputRequirements(
+    \App\Mail\FormCompletion::class
+);
+
+$html = LaravelMailPreviewer::renderHtml(
+    \App\Mail\FormCompletion::class,
+    ['form' => 12]
+);
 ```
 
-Optionally, you can publish the views using
+## API
 
-```bash
-php artisan vendor:publish --tag="laravel-mail-previewer-views"
-```
+### `LaravelMailPreviewer::discover(): array`
 
-## Usage
+Returns both mailables and notifications:
 
 ```php
-$laravelMailPreviewer = new Charlielangridge\LaravelMailPreviewer();
-echo $laravelMailPreviewer->echoPhrase('Hello, Charlielangridge!');
+[
+    'mailables' => [
+        [
+            'name' => 'FormCompletion',
+            'class' => 'App\\Mail\\FormCompletion',
+            'subject' => 'Hello **user->name**',
+            'input_requirements' => [
+                ['name' => 'form', 'type' => 'App\\Models\\Forms\\Form'],
+            ],
+        ],
+    ],
+    'notifications' => [
+        // same shape
+    ],
+]
+```
+
+Subject extraction rules:
+
+- Uses class-level default `subject` when available.
+- Parses common subject definitions from class source:
+  - `Envelope(subject: ...)`
+  - `->subject(...)`
+- Resolves local variables where possible:
+  - `$subject = 'Test'; ->subject($subject)` becomes `Test`
+- External/runtime references are converted to placeholders:
+  - `'Hello '.$this->user->name` becomes `Hello **user->name**`
+
+### `LaravelMailPreviewer::inputRequirements(string $className): array`
+
+Returns required constructor parameters for a mailable/notification.
+
+If parameter type is an Eloquent model, includes `options` from DB (limit 100):
+
+```php
+[
+    [
+        'name' => 'form',
+        'type' => 'App\\Models\\Forms\\Form',
+        'options' => [
+            ['id' => 12, 'label' => 'Access Training Feedback'],
+            // ...
+        ],
+    ],
+    [
+        'name' => 'token',
+        'type' => 'string',
+    ],
+]
+```
+
+Notes:
+
+- Non-model parameters do not include `options`.
+- Unsupported classes return an empty array.
+
+### `LaravelMailPreviewer::renderHtml(string $className, array $parameters = [], mixed $notifiable = null): ?string`
+
+Renders HTML preview for a mailable or notification using Laravel's rendering pipeline.
+
+```php
+$html = LaravelMailPreviewer::renderHtml(
+    \App\Notifications\FormCompleted::class,
+    ['form' => 12]
+);
+```
+
+For model-typed constructor inputs, scalar values are treated as primary keys and resolved via `findOrFail`.
+
+`$notifiable` is optional for notifications. If omitted, an internal anonymous notifiable is used.
+
+Important:
+
+- This method does not call send/notify pathways.
+- It is for preview rendering only.
+
+## Tinker Examples
+
+```php
+use Charlielangridge\LaravelMailPreviewer\Facades\LaravelMailPreviewer;
+
+// 1) list discoverable items
+LaravelMailPreviewer::discover();
+
+// 2) get inputs for chosen class
+LaravelMailPreviewer::inputRequirements(\App\Mail\FormCompletion::class);
+
+// 3) render html preview with selected values
+$html = LaravelMailPreviewer::renderHtml(
+    \App\Mail\FormCompletion::class,
+    ['form' => 12]
+);
+
+$html;
 ```
 
 ## Testing
@@ -64,21 +162,8 @@ composer test
 
 ## Changelog
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
-
-## Credits
-
-- [Charlie Langridge](https://github.com/charlielangridge)
-- [All Contributors](../../contributors)
+Please see [CHANGELOG](CHANGELOG.md) for details.
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+MIT. See [LICENSE.md](LICENSE.md).

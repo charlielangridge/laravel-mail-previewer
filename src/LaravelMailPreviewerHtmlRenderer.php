@@ -55,8 +55,12 @@ class LaravelMailPreviewerHtmlRenderer
 
         $notifiableInstance = $notifiable ?? (new AnonymousNotifiable())->route('mail', 'preview@example.test');
 
+        if (! is_callable([$notification, 'toMail'])) {
+            return null;
+        }
+
         try {
-            $mailRepresentation = $notification->toMail($notifiableInstance);
+            $mailRepresentation = call_user_func([$notification, 'toMail'], $notifiableInstance);
         } catch (Throwable) {
             return null;
         }
@@ -155,8 +159,10 @@ class LaravelMailPreviewerHtmlRenderer
     {
         $parts = [];
 
-        if (is_string($mailMessage->subject) && $mailMessage->subject !== '') {
-            $parts[] = '<h1>'.e($mailMessage->subject).'</h1>';
+        $subject = (string) $mailMessage->subject;
+
+        if ($subject !== '') {
+            $parts[] = '<h1>'.e($subject).'</h1>';
         }
 
         foreach ($mailMessage->introLines as $line) {
