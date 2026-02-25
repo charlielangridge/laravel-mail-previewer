@@ -1,17 +1,17 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "charlielangridge/laravel-mail-previewer",
+    "description": "Laravel Mail Previewer - allows you to preview mailables and notifications with data",
     "keywords": [
-        ":vendor_name",
+        "charlielangridge",
         "laravel",
-        ":package_slug"
+        "laravel-mail-previewer"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/charlielangridge/laravel-mail-previewer",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Charlie Langridge",
+            "email": "charlie@charlielangridge.com",
             "role": "Developer"
         }
     ],
@@ -35,13 +35,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Charlielangridge\\LaravelMailPreviewer\\": "src/",
+            "Charlielangridge\\LaravelMailPreviewer\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/",
+            "Charlielangridge\\LaravelMailPreviewer\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -63,10 +63,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Charlielangridge\\LaravelMailPreviewer\\LaravelMailPreviewerServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "LaravelMailPreviewer": "Charlielangridge\\LaravelMailPreviewer\\Facades\\LaravelMailPreviewer"
             }
         }
     },

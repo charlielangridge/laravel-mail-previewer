@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Charlielangridge\LaravelMailPreviewer\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class LaravelMailPreviewerCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'laravel-mail-previewer';
 
     public $description = 'My command';
 
